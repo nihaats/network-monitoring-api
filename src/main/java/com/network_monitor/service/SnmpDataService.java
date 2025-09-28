@@ -1,208 +1,98 @@
 package com.network_monitor.service;
 
-import java.time.LocalDateTime;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.network_monitor.config.MetricsOidConstants;
+import com.network_monitor.event.SnmpDataSavedEvent;
 import com.network_monitor.model.SnmpData;
 import com.network_monitor.repository.SnmpDataRepository;
 
 @Service
 public class SnmpDataService {
 
-  private static final Logger logger = LoggerFactory.getLogger(SnmpDataService.class);
+  // private static final Logger logger =
+  // LoggerFactory.getLogger(SnmpDataService.class);
+  private static final String targetIP = "192.168.1.1";
+  private static final Map<String, String> highMetrics = MetricsOidConstants.HIGH_FREQUENCY_METRICS;
+  private static final Map<String, String> mediumMetrics = MetricsOidConstants.MEDIUM_FREQUENCY_METRICS;
+  private static final Map<String, String> lowMetrics = MetricsOidConstants.LOW_FREQUENCY_METRICS;
 
   @Autowired
   private SnmpDataRepository snmpDataRepository;
 
-  /**
-   * SNMP verisi kaydetme
-   */
-  public SnmpData saveSnmpData(SnmpData snmpData) {
-    try {
-      logger.info("Saving SNMP data: Device={}, Metric={}, OID={}",
-          snmpData.getDeviceIp(), snmpData.getMetricType(), snmpData.getOid());
+  @Autowired
+  private ApplicationEventPublisher eventPublisher;
 
-      SnmpData savedData = snmpDataRepository.save(snmpData);
+  @Autowired
+  private SnmpService snmpService;
 
-      logger.info("SNMP data saved successfully with ID: {}", savedData.getId());
-      return savedData;
-
-    } catch (Exception e) {
-      logger.error("Error saving SNMP data: {}", e.getMessage(), e);
-      throw new RuntimeException("Failed to save SNMP data", e);
-    }
+  public void processBatch() {
+    fetchHighMetrics();
+    fetchMediumMetrics();
+    fetchLowMetrics();
   }
 
-  /**
-   * Tüm SNMP verilerini getirme
-   */
-  public List<SnmpData> getAllSnmpData() {
-    try {
-      logger.info("Fetching all SNMP data");
-      return snmpDataRepository.findAll();
-    } catch (Exception e) {
-      logger.error("Error fetching all SNMP data: {}", e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data", e);
-    }
+  private List<SnmpData> fetchMetrics(Map<String, String> metrics, String level) {
+    List<SnmpData> dataList = new ArrayList<>();
+    metrics.forEach((metricName, oid) -> {
+      try {
+        SnmpData data = createAndSaveSnmpData(metricName, oid, level);
+        dataList.add(data);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    });
+    return dataList;
   }
 
-  /**
-   * ID'ye göre SNMP verisi getirme
-   */
-  public Optional<SnmpData> getSnmpDataById(String id) {
-    try {
-      logger.info("Fetching SNMP data by ID: {}", id);
-      return snmpDataRepository.findById(id);
-    } catch (Exception e) {
-      logger.error("Error fetching SNMP data by ID {}: {}", id, e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data by ID", e);
-    }
+  @Scheduled(fixedRate = 20_000) // 20 saniye
+  private void fetchHighMetrics() {
+    List<SnmpData> data = fetchMetrics(highMetrics, "high");
+    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "high"));
   }
 
-  /**
-   * Device IP'ye göre SNMP verilerini getirme
-   */
-  public List<SnmpData> getSnmpDataByDeviceIp(String deviceIp) {
-    try {
-      logger.info("Fetching SNMP data for device: {}", deviceIp);
-      return snmpDataRepository.findByDeviceIp(deviceIp);
-    } catch (Exception e) {
-      logger.error("Error fetching SNMP data for device {}: {}", deviceIp, e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data for device", e);
-    }
+  @Scheduled(fixedRate = 3_600_000) // 1 saat
+  private void fetchMediumMetrics() {
+    List<SnmpData> data = fetchMetrics(mediumMetrics, "medium");
+    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "medium"));
   }
 
-  /**
-   * Metric type'a göre SNMP verilerini getirme
-   */
-  public List<SnmpData> getSnmpDataByMetricType(String metricType) {
-    try {
-      logger.info("Fetching SNMP data for metric type: {}", metricType);
-      return snmpDataRepository.findByMetricType(metricType);
-    } catch (Exception e) {
-      logger.error("Error fetching SNMP data for metric type {}: {}", metricType, e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data for metric type", e);
-    }
+  @Scheduled(fixedRate = 7_200_000) // 2 saat
+  private void fetchLowMetrics() {
+    List<SnmpData> data = fetchMetrics(lowMetrics, "low");
+    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "low"));
   }
 
-  /**
-   * Son kayıtları getirme
-   */
-  public List<SnmpData> getLatestSnmpData() {
-    try {
-      logger.info("Fetching latest SNMP data");
-      return snmpDataRepository.findTop10ByOrderByTimestampDesc();
-    } catch (Exception e) {
-      logger.error("Error fetching latest SNMP data: {}", e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch latest SNMP data", e);
-    }
+  public List<SnmpData> fetchAllMetrics() {
+    List<SnmpData> allData = new ArrayList<>();
+    allData.addAll(fetchMetrics(highMetrics, "high"));
+    allData.addAll(fetchMetrics(mediumMetrics, "medium"));
+    allData.addAll(fetchMetrics(lowMetrics, "low"));
+
+    return allData;
   }
 
-  /**
-   * Belirli device için son kayıtları getirme
-   */
-  public List<SnmpData> getLatestSnmpDataByDevice(String deviceIp) {
-    try {
-      logger.info("Fetching latest SNMP data for device: {}", deviceIp);
-      return snmpDataRepository.findTop5ByDeviceIpOrderByTimestampDesc(deviceIp);
-    } catch (Exception e) {
-      logger.error("Error fetching latest SNMP data for device {}: {}", deviceIp, e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch latest SNMP data for device", e);
-    }
+  private SnmpData createAndSaveSnmpData(String metricName, String oid, String frequencyType) throws IOException {
+    String value = snmpService.getOIDValue(targetIP, oid);
+
+    SnmpData snmpData = new SnmpData();
+    snmpData.setDeviceIp(targetIP);
+    snmpData.setOid(oid);
+    snmpData.setValue(value);
+    snmpData.setReadableValue(snmpService.toReadableValue(metricName, value));
+    snmpData.setMetricType(metricName);
+    snmpData.setFrequencyType(frequencyType);
+    // snmpDataRepository.save(snmpData);
+
+    return snmpData;
   }
 
-  /**
-   * Belirli metric type için son kayıtları getirme
-   */
-  public List<SnmpData> getLatestSnmpDataByMetricType(String metricType) {
-    try {
-      logger.info("Fetching latest SNMP data for metric type: {}", metricType);
-      return snmpDataRepository.findTop5ByMetricTypeOrderByTimestampDesc(metricType);
-    } catch (Exception e) {
-      logger.error("Error fetching latest SNMP data for metric type {}: {}", metricType, e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch latest SNMP data for metric type", e);
-    }
-  }
-
-  /**
-   * Tarih aralığına göre SNMP verilerini getirme
-   */
-  public List<SnmpData> getSnmpDataByDateRange(LocalDateTime start, LocalDateTime end) {
-    try {
-      logger.info("Fetching SNMP data between {} and {}", start, end);
-      return snmpDataRepository.findByTimestampBetween(start, end);
-    } catch (Exception e) {
-      logger.error("Error fetching SNMP data by date range: {}", e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data by date range", e);
-    }
-  }
-
-  /**
-   * İstatistikler getirme
-   */
-  public SnmpDataStats getSnmpDataStats() {
-    try {
-      logger.info("Fetching SNMP data statistics");
-
-      long totalRecords = snmpDataRepository.count();
-      long systemDescCount = snmpDataRepository.countByMetricType("system_description");
-      long systemUptimeCount = snmpDataRepository.countByMetricType("system_uptime");
-      long systemNameCount = snmpDataRepository.countByMetricType("system_name");
-      long interfaceCount = snmpDataRepository.countByMetricType("interface_count");
-
-      return new SnmpDataStats(totalRecords, systemDescCount, systemUptimeCount,
-          systemNameCount, interfaceCount);
-
-    } catch (Exception e) {
-      logger.error("Error fetching SNMP data statistics: {}", e.getMessage(), e);
-      throw new RuntimeException("Failed to fetch SNMP data statistics", e);
-    }
-  }
-
-  /**
-   * İstatistik sınıfı
-   */
-  public static class SnmpDataStats {
-    private long totalRecords;
-    private long systemDescriptionCount;
-    private long systemUptimeCount;
-    private long systemNameCount;
-    private long interfaceCount;
-
-    public SnmpDataStats(long totalRecords, long systemDescriptionCount,
-        long systemUptimeCount, long systemNameCount, long interfaceCount) {
-      this.totalRecords = totalRecords;
-      this.systemDescriptionCount = systemDescriptionCount;
-      this.systemUptimeCount = systemUptimeCount;
-      this.systemNameCount = systemNameCount;
-      this.interfaceCount = interfaceCount;
-    }
-
-    // Getters
-    public long getTotalRecords() {
-      return totalRecords;
-    }
-
-    public long getSystemDescriptionCount() {
-      return systemDescriptionCount;
-    }
-
-    public long getSystemUptimeCount() {
-      return systemUptimeCount;
-    }
-
-    public long getSystemNameCount() {
-      return systemNameCount;
-    }
-
-    public long getInterfaceCount() {
-      return interfaceCount;
-    }
-  }
 }
