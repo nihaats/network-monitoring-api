@@ -8,9 +8,11 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 @Document(collection = "snmp_data")
 public class SnmpData {
 
@@ -38,19 +40,29 @@ public class SnmpData {
   @Field("created_at")
   private LocalDateTime createdAt;
 
+  @Field("frequency_type")
+  private String frequencyType;
+
   // Default constructor
   public SnmpData() {
     this.createdAt = LocalDateTime.now();
   }
 
   // Constructor with all fields
-  public SnmpData(String oid, String value, String deviceIp, LocalDateTime timestamp, String metricType) {
+  public SnmpData(String oid, String value, String deviceIp, LocalDateTime timestamp, String metricType,
+      String frequencyType) {
     this.oid = oid;
     this.value = value;
     this.deviceIp = deviceIp;
     this.timestamp = timestamp;
     this.metricType = metricType;
+    this.frequencyType = frequencyType;
     this.createdAt = LocalDateTime.now();
+  }
+
+  // Setter for created_at (if needed for manual setting)
+  public void setCreatedAt(LocalDateTime createdAt) {
+    this.createdAt = createdAt;
   }
 
 }
