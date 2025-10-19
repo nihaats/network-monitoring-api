@@ -38,9 +38,4 @@ public class SnmpController {
   public List<SnmpData> getAllMetrics(String routerIP) {
     return snmpDataService.fetchAllMetrics();
   }
-
-  // @PostMapping("/snmp-data/batch")
-  // public void receiveSnmpDataBatch() {
-  // snmpDataService.processBatch();
-  // }
 }
