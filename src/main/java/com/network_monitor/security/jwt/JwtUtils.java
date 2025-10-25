@@ -2,6 +2,9 @@ package com.network_monitor.security.jwt;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
@@ -9,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
@@ -48,7 +52,7 @@ public class JwtUtils {
   }
 
   public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
-    String jwt = generateTokenFromUsername(userPrincipal.getUsername());
+    String jwt = generateTokenFromUsername(userPrincipal);
     ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwt)
         .path("/api")
         .maxAge(24 * 60 * 60)
@@ -116,9 +120,18 @@ public class JwtUtils {
   /**
    * JWT 0.13.0 ile uyumlu token generation metodu
    */
-  public String generateTokenFromUsername(String username) {
+  public String generateTokenFromUsername(UserDetailsImpl userPrincipal) {
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("username", userPrincipal.getUsername());
+    claims.put("email", userPrincipal.getEmail());
+    claims.put("roles", userPrincipal.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .collect(Collectors.toList()));
+
     return Jwts.builder()
-        .subject(username)
+        .claims(claims)
+        .subject(userPrincipal.getUsername())
         .issuedAt(new Date())
         .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
         .signWith(getSigningKey(), Jwts.SIG.HS256)
