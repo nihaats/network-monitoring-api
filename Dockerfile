@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Portu aç
-EXPOSE 8080
+EXPOSE 8090
 
 # JVM optimizasyonları ile çalıştır
 ENTRYPOINT ["java", \
