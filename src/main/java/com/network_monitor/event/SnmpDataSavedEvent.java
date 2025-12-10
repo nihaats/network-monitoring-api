@@ -13,11 +13,13 @@ public class SnmpDataSavedEvent extends ApplicationEvent {
 
     private final List<SnmpData> snmpData;
     private final String frequencyType;
+    private final String userId;
 
-    public SnmpDataSavedEvent(Object source, List<SnmpData> snmpData, String frequencyType) {
+    public SnmpDataSavedEvent(Object source, List<SnmpData> snmpData, String frequencyType, String userId) {
         super(source);
         this.snmpData = snmpData;
         this.frequencyType = frequencyType;
+        this.userId = userId;
     }
 
     public List<SnmpData> getSnmpData() {
@@ -26,5 +28,9 @@ public class SnmpDataSavedEvent extends ApplicationEvent {
 
     public String getFrequencyType() {
         return frequencyType;
+    }
+
+    public String getUserId() {
+        return userId;
     }
 }

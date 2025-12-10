@@ -22,6 +22,8 @@ public class User {
     @Id
     private String id;
 
+    private String userId;
+
     @NotBlank
     @Size(max = 20)
     private String username;

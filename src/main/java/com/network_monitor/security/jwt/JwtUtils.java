@@ -132,6 +132,7 @@ public class JwtUtils {
     return Jwts.builder()
         .claims(claims)
         .subject(userPrincipal.getUsername())
+        .id(userPrincipal.getUserId())
         .issuedAt(new Date())
         .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
         .signWith(getSigningKey(), Jwts.SIG.HS256)

@@ -1,0 +1,15 @@
+services:
+  backend:
+    build: .
+    container_name: backend
+    ports:
+      - "8090:8090"
+    networks:
+      - app-network
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+networks:
+  app-network:
+    external: true

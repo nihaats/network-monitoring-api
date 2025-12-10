@@ -1,9 +1,10 @@
-package com.network_monitor.controller.auth;
+package com.network_monitor.controller;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -84,6 +85,7 @@ public class AuthController {
 
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                     .body(new UserInfoResponse(userDetails.getId(),
+                            userDetails.getUserId(),
                             userDetails.getUsername(),
                             userDetails.getEmail(),
                             roles));
@@ -99,6 +101,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        System.out.println("Signup Request: " + signUpRequest);
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
@@ -112,12 +115,19 @@ public class AuthController {
         }
 
         // Create new user's account
-        User user = new User(signUpRequest.getUsername(),
+        User user = new User(
+                signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()));
 
         Set<String> strRoles = signUpRequest.getRoles();
         Set<Role> roles = new HashSet<>();
+
+        if (signUpRequest.getUserId() != null) {
+            user.setUserId(signUpRequest.getUserId().toString());
+        } else {
+            user.setUserId(UUID.randomUUID().toString());
+        }
 
         if (strRoles == null || strRoles.isEmpty()) {
             Role userRole = roleRepository.findByName(ERole.ROLE_USER)

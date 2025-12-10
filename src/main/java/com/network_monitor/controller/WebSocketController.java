@@ -30,9 +30,12 @@ public class WebSocketController {
         try {
             List<SnmpData> data = event.getSnmpData();
             String frqType = event.getFrequencyType();
+            String userID = event.getUserId();
+
             if (data != null) {
                 WebSocketMessage message = new WebSocketMessage(frqType + "_frequency_metrics", data);
-                messagingTemplate.convertAndSend("/topic/" + frqType + "-frequency-data", message);
+                messagingTemplate.convertAndSend("/topic/" + frqType + "-frequency-data/" + userID,
+                        message);
             }
         } catch (Exception e) {
             logger.error("WebSocket error: {}", e.getMessage());

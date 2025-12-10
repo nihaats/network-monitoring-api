@@ -21,15 +21,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.network_monitor.security.jwt.AuthEntryPointJwt;
 import com.network_monitor.security.jwt.AuthTokenFilter;
-import com.network_monitor.service.UserDetailsServiceImpl;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfig {
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
 
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
@@ -52,7 +48,13 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:4200",
+                "http://98.94.81.20",
+                "http://hauranet.com",
+                "http://www.hauranet.com",
+                "https://hauranet.com",
+                "https://www.hauranet.com"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
@@ -72,6 +74,7 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/v1/**").permitAll()
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()

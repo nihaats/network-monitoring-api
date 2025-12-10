@@ -7,11 +7,9 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.network_monitor.config.MetricsOidConstants;
-import com.network_monitor.event.SnmpDataSavedEvent;
 import com.network_monitor.model.SnmpData;
 import com.network_monitor.repository.SnmpDataRepository;
 
@@ -53,22 +51,22 @@ public class SnmpDataService {
     return dataList;
   }
 
-  @Scheduled(fixedRate = 20_000) // 20 saniye
+  // @Scheduled(fixedRate = 20_000) // 20 saniye
   private void fetchHighMetrics() {
     List<SnmpData> data = fetchMetrics(highMetrics, "high");
-    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "high"));
+    // eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "high"));
   }
 
-  @Scheduled(fixedRate = 3_600_000) // 1 saat
+  // @Scheduled(fixedRate = 3_600_000) // 1 saat
   private void fetchMediumMetrics() {
     List<SnmpData> data = fetchMetrics(mediumMetrics, "medium");
-    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "medium"));
+    // eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "medium"));
   }
 
-  @Scheduled(fixedRate = 7_200_000) // 2 saat
+  // @Scheduled(fixedRate = 7_200_000) // 2 saat
   private void fetchLowMetrics() {
     List<SnmpData> data = fetchMetrics(lowMetrics, "low");
-    eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "low"));
+    // eventPublisher.publishEvent(new SnmpDataSavedEvent(this, data, "low"));
   }
 
   public List<SnmpData> fetchAllMetrics() {

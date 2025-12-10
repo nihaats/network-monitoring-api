@@ -14,20 +14,31 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Simple broker for sending messages to clients
         config.enableSimpleBroker("/topic", "/queue");
-
         // Prefix for messages from clients
         config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // WebSocket endpoint - matches Angular WS_ENDPOINT
+        // WebSocket endpoint with SockJS fallback
         registry.addEndpoint("/ws/snmp-data")
-                .setAllowedOriginPatterns("*") // CORS için
-                .withSockJS(); // SockJS fallback support
+                .setAllowedOrigins(
+                        "http://localhost:4200",
+                        "http://98.94.81.20",
+                        "http://hauranet.com",
+                        "http://www.hauranet.com",
+                        "https://hauranet.com",
+                        "https://www.hauranet.com")
+                .withSockJS();
 
         // Raw WebSocket endpoint (without SockJS)
         registry.addEndpoint("/ws/snmp-data")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins(
+                        "http://localhost:4200",
+                        "http://98.94.81.20",
+                        "http://hauranet.com",
+                        "http://www.hauranet.com",
+                        "https://hauranet.com",
+                        "https://www.hauranet.com");
     }
 }

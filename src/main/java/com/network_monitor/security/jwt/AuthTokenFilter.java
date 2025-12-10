@@ -35,10 +35,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         try {
 
+            System.out.println("AuthTokenFilter: " + request.getMethod() + " " + request.getRequestURI() + " from "
+                    + request.getRemoteAddr());
+
             String path = request.getRequestURI();
             System.out.println("Filter path: " + path);
 
-            if (path.startsWith("/api/auth/") || path.startsWith("/api/test/")) {
+            if (path.startsWith("/api/auth/") || path.startsWith("/auth/") ||
+                    path.startsWith("/api/test/") || path.startsWith("/test/")) {
                 filterChain.doFilter(request, response);
                 return;
             }
